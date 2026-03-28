@@ -1,0 +1,8 @@
+{
+  "projectId": "your-project-id-from-command-center",
+  "apiKey": "your-api-key",
+  "commandCenterUrl": "http://localhost:3000",
+  "projectName": "My Project",
+  "autoEnrich": true,
+  "techStack": ["react", "typescript", "tailwind"]
+}
