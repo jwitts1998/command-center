@@ -14,8 +14,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     // Support both UUID and slug
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const agent = await queryOne<Agent>(
-      'SELECT * FROM agents WHERE id = $1 OR slug = $1',
+      isUuid
+        ? 'SELECT * FROM agents WHERE id = $1'
+        : 'SELECT * FROM agents WHERE slug = $1',
       [id]
     );
 
@@ -129,9 +132,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     values.push(id);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const result = await queryOne<Agent>(
       `UPDATE agents SET ${updates.join(', ')}, updated_at = NOW()
-       WHERE id = $${paramIndex} OR slug = $${paramIndex}
+       WHERE ${isUuid ? 'id' : 'slug'} = $${paramIndex}
        RETURNING *`,
       values
     );
@@ -161,8 +165,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
 
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const result = await queryOne<{ id: string }>(
-      'DELETE FROM agents WHERE id = $1 OR slug = $1 RETURNING id',
+      `DELETE FROM agents WHERE ${isUuid ? 'id' : 'slug'} = $1 RETURNING id`,
       [id]
     );
 
