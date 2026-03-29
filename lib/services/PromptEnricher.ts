@@ -5,7 +5,8 @@ import { buildEnrichmentPrompt } from '@/lib/ai/prompts/enrichment';
 import { ambiguityDetector } from './AmbiguityDetector';
 import { questionGenerator } from './QuestionGenerator';
 import { contextBuilder, type ProjectContext } from './ContextBuilder';
-import type { ClarificationQuestion, EnrichmentResult } from '@/types/clarification';
+import { patternApplicator } from './PatternApplicator';
+import type { ClarificationQuestion, EnrichmentResult, SuggestedPattern } from '@/types/clarification';
 
 export interface EnrichmentRequest {
   projectId: string;
@@ -20,6 +21,8 @@ export interface EnrichmentResponse {
   contextApplied?: string[];
   patternsApplied?: string[];
   estimatedCost?: { min_usd: number; max_usd: number };
+  suggestedAgents?: string[];
+  suggestedPatterns?: SuggestedPattern[];
   sessionId?: string;
 }
 
@@ -111,8 +114,29 @@ export class PromptEnricher {
     answers: Record<string, string>
   ): Promise<EnrichmentResult> {
     try {
+      // Find applicable patterns using PatternApplicator
+      const patternResult = await patternApplicator.findApplicablePatterns(
+        context.project.id,
+        userPrompt
+      );
+
+      // Apply auto-applied patterns to the prompt
+      let enhancedPrompt = userPrompt;
+      const appliedPatternNames: string[] = [];
+
+      if (patternResult.autoAppliedPatterns.length > 0 || patternResult.contextEnhancements.length > 0) {
+        enhancedPrompt = await patternApplicator.applyPatternsToPrompt(
+          userPrompt,
+          patternResult.autoAppliedPatterns,
+          patternResult.contextEnhancements
+        );
+        appliedPatternNames.push(
+          ...patternResult.autoAppliedPatterns.map(p => p.patternName)
+        );
+      }
+
       const prompt = buildEnrichmentPrompt(
-        userPrompt,
+        enhancedPrompt,
         answers,
         {
           techStack: context.techStack,
@@ -128,12 +152,24 @@ export class PromptEnricher {
         prompt,
       });
 
+      // Map suggested patterns to response format
+      const suggestedPatterns: SuggestedPattern[] = patternResult.suggestedPatterns.map(p => ({
+        patternId: p.patternId,
+        patternName: p.patternName,
+        patternType: p.patternType,
+        relevance: p.relevance,
+        suggestion: p.suggestion,
+        priority: p.priority,
+        confidence: p.confidence,
+      }));
+
       return {
         enrichedPrompt: result.object.enriched_prompt,
         contextApplied: result.object.context_applied,
-        patternsApplied: result.object.patterns_applied,
+        patternsApplied: [...result.object.patterns_applied, ...appliedPatternNames],
         estimatedCost: result.object.estimated_cost_range,
         suggestedAgents: result.object.suggested_agents,
+        suggestedPatterns: suggestedPatterns.length > 0 ? suggestedPatterns : undefined,
         needsClarification: false,
       };
     } catch (error) {

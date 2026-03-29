@@ -160,6 +160,7 @@ export async function POST(request: NextRequest) {
         patterns_applied: enrichmentResult.patternsApplied || [],
         estimated_cost: enrichmentResult.estimatedCost,
         suggested_agents: enrichmentResult.suggestedAgents || [],
+        suggested_patterns: enrichmentResult.suggestedPatterns || [],
       },
     });
   } catch (error) {

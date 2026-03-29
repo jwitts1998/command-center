@@ -14,7 +14,9 @@ import {
 } from '@/components/ui/select';
 import { ClarificationDialog } from '@/components/ClarificationDialog';
 import { EnrichedPromptDisplay } from '@/components/EnrichedPromptDisplay';
+import { PatternSuggestions } from '@/components/PatternSuggestions';
 import type { Project } from '@/types/project';
+import type { SuggestedPattern } from '@/types/clarification';
 
 type EnrichmentState = 'input' | 'clarifying' | 'enriched' | 'loading';
 
@@ -38,6 +40,7 @@ interface EnrichmentResult {
   patterns_applied: string[];
   estimated_cost?: { min_usd: number; max_usd: number };
   suggested_agents?: string[];
+  suggested_patterns?: SuggestedPattern[];
 }
 
 export default function EnrichPage() {
@@ -105,6 +108,7 @@ export default function EnrichPage() {
           patterns_applied: data.patterns_applied || [],
           estimated_cost: data.estimated_cost,
           suggested_agents: data.suggested_agents || [],
+          suggested_patterns: data.suggested_patterns || [],
         });
         setState('enriched');
       }
@@ -140,6 +144,7 @@ export default function EnrichPage() {
         patterns_applied: data.data.patterns_applied || [],
         estimated_cost: data.data.estimated_cost,
         suggested_agents: data.data.suggested_agents || [],
+        suggested_patterns: data.data.suggested_patterns || [],
       });
       setState('enriched');
     } catch (error) {
@@ -244,6 +249,19 @@ export default function EnrichPage() {
       {/* Enriched State */}
       {state === 'enriched' && enrichmentResult && (
         <div className="space-y-4">
+          {/* Pattern Suggestions */}
+          {enrichmentResult.suggested_patterns && enrichmentResult.suggested_patterns.length > 0 && (
+            <PatternSuggestions
+              patterns={enrichmentResult.suggested_patterns}
+              onAccept={(patternId) => {
+                console.log('Pattern accepted:', patternId);
+              }}
+              onReject={(patternId) => {
+                console.log('Pattern rejected:', patternId);
+              }}
+            />
+          )}
+
           <EnrichedPromptDisplay
             originalPrompt={userPrompt}
             enrichedPrompt={enrichmentResult.enriched_prompt}

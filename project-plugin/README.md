@@ -1,26 +1,24 @@
 # Command Center Plugin
 
-Integrate your projects with the Command Center for intelligent prompt enrichment.
+Prompt enrichment plugin for project repositories. Connects your projects to the Command Center for intelligent prompt enrichment, pattern learning, and session tracking.
 
 ## Features
 
-- **Prompt Enrichment**: Automatically enrich bare prompts with project context
-- **Clarification Questions**: Get multiple-choice questions when prompts are ambiguous
-- **Session Tracking**: Record token usage and costs back to Command Center
-- **Offline Fallback**: Gracefully degrade when Command Center is unavailable
+- **Prompt Enrichment**: Transform bare prompts into detailed, context-rich instructions
+- **Clarification Flow**: Automatically detect ambiguities and ask clarifying questions
+- **Pattern Application**: Apply learned patterns from across your portfolio
+- **Session Tracking**: Record agent sessions for cost tracking and analysis
+- **Offline Mode**: Graceful degradation when Command Center is unavailable
 
 ## Installation
 
 ### Quick Install
 
-From your project root:
+Run the setup script in your project root:
 
 ```bash
-# Option 1: Direct script
-curl -sSL https://your-command-center.vercel.app/install.sh | bash
-
-# Option 2: Copy from command-center repo
-cp -r /path/to/command-center/project-plugin .claude/command-center
+cd your-project
+bash /path/to/command-center/project-plugin/setup.sh
 ```
 
 ### Manual Install
@@ -30,233 +28,115 @@ cp -r /path/to/command-center/project-plugin .claude/command-center
    mkdir -p .claude/command-center
    ```
 
-2. Copy plugin files:
-   ```bash
-   cp plugin.ts config.example.json .claude/command-center/
-   ```
-
-3. Create your config:
-   ```bash
-   cp .claude/command-center/config.example.json .claude/command-center/config.json
-   ```
-
-4. Edit `config.json` with your Command Center credentials:
+2. Create the config file (`.claude/command-center/config.json`):
    ```json
    {
-     "projectId": "your-project-id",
+     "commandCenterUrl": "https://your-command-center.vercel.app",
      "apiKey": "your-api-key",
-     "commandCenterUrl": "http://localhost:3000",
-     "projectName": "My Project",
+     "projectId": "your-project-id",
      "autoEnrich": true,
-     "techStack": ["react", "typescript"]
+     "skipClarification": false,
+     "timeout": 30000,
+     "offlineMode": true
    }
    ```
 
-5. Add to `.gitignore`:
-   ```
-   .claude/command-center/config.json
-   ```
+## Configuration
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `commandCenterUrl` | string | `http://localhost:3000` | Command Center API URL |
+| `apiKey` | string | - | API key for authentication |
+| `projectId` | string | - | Your project ID from Command Center |
+| `autoEnrich` | boolean | `true` | Automatically enrich prompts |
+| `skipClarification` | boolean | `false` | Skip clarification questions |
+| `timeout` | number | `30000` | API timeout in milliseconds |
+| `offlineMode` | boolean | `true` | Enable offline fallback |
+
+### Environment Variables
+
+You can also configure via environment variables:
+
+```bash
+export COMMAND_CENTER_URL="https://your-command-center.vercel.app"
+export COMMAND_CENTER_API_KEY="your-api-key"
+export COMMAND_CENTER_PROJECT_ID="your-project-id"
+```
 
 ## Usage
-
-### TypeScript/JavaScript
-
-```typescript
-import { CommandCenterPlugin } from '.claude/command-center/plugin';
-
-const plugin = new CommandCenterPlugin();
-
-// Enrich a prompt
-async function enrichAndExecute(userPrompt: string) {
-  const result = await plugin.enrichPrompt(userPrompt);
-
-  if (!result.success) {
-    console.error('Enrichment failed:', result.error);
-    return;
-  }
-
-  if (result.needsClarification) {
-    // Present questions to user
-    console.log('Please answer these questions:');
-    for (const q of result.questions) {
-      console.log(`\n${q.question}`);
-      q.options.forEach((opt, i) => {
-        const rec = opt.recommended ? ' (recommended)' : '';
-        console.log(`  ${i + 1}. ${opt.label}${rec}`);
-      });
-    }
-
-    // Collect answers and submit
-    const answers = await collectUserAnswers(result.questions);
-    const enriched = await plugin.submitClarifications(result.sessionId, answers);
-
-    console.log('\nEnriched prompt:', enriched.enrichedPrompt);
-  } else {
-    console.log('Enriched prompt:', result.enrichedPrompt);
-  }
-}
-```
 
 ### CLI
 
 ```bash
-# Setup interactively
-ts-node .claude/command-center/plugin.ts setup
+# Setup the plugin
+npx cc-plugin setup
+
+# Test connection
+npx cc-plugin test
+
+# Check status
+npx cc-plugin status
 
 # Enrich a prompt
-ts-node .claude/command-center/plugin.ts enrich "Add dark mode"
-
-# Show local context
-ts-node .claude/command-center/plugin.ts context
+npx cc-plugin enrich "Add dark mode"
 ```
 
-### Environment Variables
-
-Instead of `config.json`, you can use environment variables:
-
-```bash
-export COMMAND_CENTER_URL=http://localhost:3000
-export COMMAND_CENTER_PROJECT_ID=your-project-id
-export COMMAND_CENTER_API_KEY=your-api-key
-```
-
-## Claude Code Integration
-
-To automatically enrich prompts in Claude Code, create a hook:
-
-### hooks/enrich-prompt.ts
+### Programmatic
 
 ```typescript
-#!/usr/bin/env ts-node
-import { CommandCenterPlugin } from '../command-center/plugin';
+import { createPlugin, enrichPrompt } from '@command-center/plugin';
 
-const plugin = new CommandCenterPlugin();
+// Quick enrichment
+const result = await enrichPrompt("Add dark mode");
 
-async function main() {
-  const userPrompt = process.env.USER_PROMPT;
-  if (!userPrompt) {
-    process.exit(0);
-  }
-
-  const result = await plugin.enrichPrompt(userPrompt);
-
-  if (result.success && !result.needsClarification) {
-    // Output enriched prompt for the agent to use
-    console.log(result.enrichedPrompt);
-  } else if (result.needsClarification) {
-    // Store session ID and questions for UI to handle
-    console.log(JSON.stringify({
-      needsClarification: true,
-      sessionId: result.sessionId,
-      questions: result.questions,
-    }));
-  }
+if (result.needsClarification) {
+  console.log('Questions:', result.questions);
+} else {
+  console.log('Enriched:', result.enrichedPrompt);
 }
 
-main().catch(console.error);
-```
+// Full plugin usage
+const plugin = createPlugin();
 
-## API Reference
+// Enrich with clarification handling
+const enrichment = await plugin.enrichPrompt("Add user authentication");
 
-### `CommandCenterPlugin`
-
-#### Constructor
-
-```typescript
-new CommandCenterPlugin(projectRoot?: string)
-```
-
-- `projectRoot`: Optional path to project root. Defaults to `process.cwd()`.
-
-#### Methods
-
-##### `isConfigured(): boolean`
-
-Returns `true` if the plugin has valid configuration.
-
-##### `getProjectContext(): Record<string, any>`
-
-Returns local project context including:
-- Tech stack from package.json
-- Local rules from `.claude/rules/`
-- Project name and configuration
-
-##### `enrichPrompt(userPrompt: string): Promise<EnrichmentResult>`
-
-Sends a prompt to Command Center for enrichment.
-
-Returns:
-```typescript
-{
-  success: boolean;
-  needsClarification?: boolean;
-  questions?: ClarificationQuestion[];
-  sessionId?: string;
-  enrichedPrompt?: string;
-  metadata?: {
-    ambiguitiesFound?: number;
-    contextApplied?: string[];
-    estimatedTokens?: number;
-  };
-  error?: string;
+if (enrichment.needsClarification) {
+  const answers = { 'auth-method': 'oauth' };
+  const final = await plugin.submitClarificationAnswers({
+    sessionId: enrichment.sessionId!,
+    answers,
+  });
+  console.log('Final:', final.enrichedPrompt);
 }
 ```
 
-##### `submitClarifications(sessionId: string, answers: Record<string, string>): Promise<EnrichmentResult>`
+## Hooks Integration
 
-Submits answers to clarification questions.
-
-- `sessionId`: Session ID from initial enrichment
-- `answers`: Map of question IDs to selected option IDs
-
-##### `recordSession(sessionData: SessionData): Promise<{ success: boolean; error?: string }>`
-
-Records session metrics back to Command Center.
+The plugin integrates with Claude Code's hooks system:
 
 ```typescript
-{
-  sessionId: string;
-  status: 'running' | 'completed' | 'failed' | 'cancelled';
-  tokensInput?: number;
-  tokensOutput?: number;
-  model?: string;
-  completedAt?: string;
-  metadata?: Record<string, any>;
-}
+import { installHooks } from '@command-center/plugin';
+installHooks(); // Installs hooks to current project
 ```
 
-##### `setup(): Promise<void>`
+Creates:
+- `.claude/hooks/command-center-enrich.sh` - Enriches prompts before execution
+- `.claude/hooks/command-center-session.sh` - Records sessions to Command Center
 
-Interactive setup wizard for configuring the plugin.
+## Offline Mode
 
-## Troubleshooting
+When `offlineMode: true` (default), the plugin will:
+1. Attempt to connect to Command Center
+2. Fall back to local context enrichment if unavailable
+3. Store sessions locally for later sync
 
-### Plugin not configured
+## Getting Your Credentials
 
-Make sure you have either:
-- A valid `config.json` file in `.claude/command-center/`
-- Environment variables set (`COMMAND_CENTER_URL`, `COMMAND_CENTER_PROJECT_ID`, `COMMAND_CENTER_API_KEY`)
-
-### Command Center unreachable
-
-The plugin will gracefully degrade and return the original prompt if Command Center is unavailable. Check:
-- Command Center URL is correct
-- Command Center service is running
-- Network connectivity
-
-### API errors
-
-Check:
-- Project ID exists in Command Center
-- API key is valid
-- API key has correct permissions
-
-## Security
-
-- **Never commit `config.json`** - it contains your API key
-- Add `.claude/command-center/config.json` to `.gitignore`
-- Use environment variables in CI/CD environments
-- Rotate API keys regularly
+1. Go to your Command Center dashboard
+2. Navigate to **Projects** and select your project
+3. Copy the **Project ID**
+4. Go to **Settings** > **API Keys** to generate an API key
 
 ## License
 

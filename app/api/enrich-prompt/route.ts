@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
       patterns_applied: result.patternsApplied || [],
       estimated_cost: result.estimatedCost,
       suggested_agents: result.suggestedAgents || [],
+      suggested_patterns: result.suggestedPatterns || [],
     });
   } catch (error) {
     console.error('Error in enrich-prompt:', error);

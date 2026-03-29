@@ -44,10 +44,22 @@ export interface AnswerClarificationInput {
   answers: Record<string, string>;
 }
 
+export interface SuggestedPattern {
+  patternId: string;
+  patternName: string;
+  patternType: string;
+  relevance: number;
+  suggestion: string;
+  priority: 'high' | 'medium' | 'low';
+  confidence: number;
+}
+
 export interface EnrichmentResult {
-  enriched_prompt: string;
-  context_applied: string[];
-  patterns_applied: string[];
-  estimated_cost?: number;
-  suggested_agents?: string[];
+  enrichedPrompt: string;
+  contextApplied: string[];
+  patternsApplied: string[];
+  estimatedCost?: { min_usd: number; max_usd: number };
+  suggestedAgents?: string[];
+  suggestedPatterns?: SuggestedPattern[];
+  needsClarification: boolean;
 }

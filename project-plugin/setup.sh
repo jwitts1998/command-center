@@ -1,134 +1,114 @@
 #!/bin/bash
-#
+
 # Command Center Plugin Setup Script
-#
-# This script installs the Command Center plugin into your project.
-# Run from your project root directory.
-#
-# Usage:
-#   curl -sSL https://your-command-center.vercel.app/install.sh | bash
-#   OR
-#   ./setup.sh
-#
+# Downloads and configures the plugin for a project
 
 set -e
 
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo ""
-echo "======================================"
-echo "  Command Center Plugin Installation  "
-echo "======================================"
-echo ""
+echo -e "${BLUE}"
+echo "╔═══════════════════════════════════════════════════════════╗"
+echo "║         Command Center Plugin Installation                ║"
+echo "╚═══════════════════════════════════════════════════════════╝"
+echo -e "${NC}"
 
-# Check if we're in a project directory
-if [ ! -d ".claude" ] && [ ! -f "package.json" ] && [ ! -f "pubspec.yaml" ]; then
-    echo -e "${YELLOW}Warning: This doesn't look like a project directory.${NC}"
-    read -p "Continue anyway? (y/n) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
+# Check for required tools
+if ! command -v node &> /dev/null; then
+    echo -e "${RED}Error: Node.js is required but not installed.${NC}"
+    exit 1
 fi
 
-# Create .claude directory if it doesn't exist
-mkdir -p .claude/command-center
+# Find or create .claude directory
+PROJECT_ROOT=$(pwd)
+CLAUDE_DIR="$PROJECT_ROOT/.claude"
+PLUGIN_DIR="$CLAUDE_DIR/command-center"
 
-# Download or copy plugin files
-PLUGIN_DIR=".claude/command-center"
+if [ ! -d "$CLAUDE_DIR" ]; then
+    echo -e "${YELLOW}Creating .claude directory...${NC}"
+    mkdir -p "$CLAUDE_DIR"
+fi
 
-# Check if running from the command-center repo
-if [ -f "project-plugin/plugin.ts" ]; then
-    echo "Installing from local command-center repository..."
-    cp project-plugin/plugin.ts "$PLUGIN_DIR/"
-    cp project-plugin/config.example.json "$PLUGIN_DIR/"
+mkdir -p "$CLAUDE_DIR/hooks"
+
+if [ -d "$PLUGIN_DIR" ]; then
+    echo -e "${YELLOW}Plugin directory exists. Updating...${NC}"
 else
-    echo "Downloading plugin files..."
-    COMMAND_CENTER_URL="${COMMAND_CENTER_URL:-http://localhost:3000}"
-
-    # Try to download from Command Center
-    if curl -sSf "$COMMAND_CENTER_URL/api/plugin/plugin.ts" -o "$PLUGIN_DIR/plugin.ts" 2>/dev/null; then
-        echo -e "${GREEN}Downloaded plugin.ts${NC}"
-    else
-        echo -e "${YELLOW}Could not download from Command Center.${NC}"
-        echo "Please copy plugin files manually or set COMMAND_CENTER_URL."
-        exit 1
-    fi
+    echo "Creating plugin directory..."
+    mkdir -p "$PLUGIN_DIR"
 fi
 
-# Create initial config from environment or prompt
-echo ""
-echo "Configuring plugin..."
-
-if [ -n "$COMMAND_CENTER_PROJECT_ID" ] && [ -n "$COMMAND_CENTER_API_KEY" ]; then
-    # Use environment variables
-    cat > "$PLUGIN_DIR/config.json" << EOF
+# Create config template
+if [ ! -f "$PLUGIN_DIR/config.json" ]; then
+    echo "Creating config template..."
+    cat > "$PLUGIN_DIR/config.json" << 'EOF'
 {
-  "projectId": "$COMMAND_CENTER_PROJECT_ID",
-  "apiKey": "$COMMAND_CENTER_API_KEY",
-  "commandCenterUrl": "${COMMAND_CENTER_URL:-http://localhost:3000}",
-  "autoEnrich": true
+  "commandCenterUrl": "http://localhost:3000",
+  "apiKey": "",
+  "projectId": "",
+  "autoEnrich": true,
+  "skipClarification": false,
+  "timeout": 30000,
+  "offlineMode": true
 }
 EOF
-    echo -e "${GREEN}Configuration created from environment variables.${NC}"
-else
-    # Interactive setup
-    read -p "Command Center URL [http://localhost:3000]: " url
-    url=${url:-http://localhost:3000}
-
-    read -p "Project ID (from Command Center dashboard): " project_id
-    read -p "API Key (from Command Center dashboard): " api_key
-    read -p "Project Name: " project_name
-
-    cat > "$PLUGIN_DIR/config.json" << EOF
-{
-  "projectId": "$project_id",
-  "apiKey": "$api_key",
-  "commandCenterUrl": "$url",
-  "projectName": "$project_name",
-  "autoEnrich": true
-}
-EOF
-    echo -e "${GREEN}Configuration saved.${NC}"
 fi
 
-# Add to .gitignore if it exists
-if [ -f ".gitignore" ]; then
-    if ! grep -q "command-center/config.json" .gitignore; then
-        echo "" >> .gitignore
-        echo "# Command Center plugin config (contains API key)" >> .gitignore
-        echo ".claude/command-center/config.json" >> .gitignore
-        echo -e "${GREEN}Added config.json to .gitignore${NC}"
+# Create hook script
+echo "Creating hook script..."
+cat > "$CLAUDE_DIR/hooks/command-center-enrich.sh" << 'EOF'
+#!/bin/bash
+# Command Center Prompt Enrichment Hook
+
+PLUGIN_DIR="$(dirname "$0")/../command-center"
+if [ -f "$PLUGIN_DIR/config.json" ]; then
+    COMMAND_CENTER_URL=$(grep -o '"commandCenterUrl": *"[^"]*"' "$PLUGIN_DIR/config.json" | cut -d'"' -f4)
+    API_KEY=$(grep -o '"apiKey": *"[^"]*"' "$PLUGIN_DIR/config.json" | cut -d'"' -f4)
+    PROJECT_ID=$(grep -o '"projectId": *"[^"]*"' "$PLUGIN_DIR/config.json" | cut -d'"' -f4)
+fi
+
+if [ -z "$API_KEY" ] || [ -z "$PROJECT_ID" ]; then
+    exit 0
+fi
+
+USER_PROMPT="$1"
+if [ -z "$USER_PROMPT" ]; then
+    exit 0
+fi
+
+RESPONSE=$(curl -s -X POST "$COMMAND_CENTER_URL/api/enrich-prompt" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $API_KEY" \
+    -d "{\"project_id\": \"$PROJECT_ID\", \"user_prompt\": \"$USER_PROMPT\", \"skip_clarification\": true}" \
+    --max-time 10 2>/dev/null)
+
+if echo "$RESPONSE" | grep -q '"success":true'; then
+    ENRICHED=$(echo "$RESPONSE" | grep -o '"enriched_prompt":"[^"]*"' | cut -d'"' -f4)
+    if [ -n "$ENRICHED" ]; then
+        echo "$ENRICHED"
+        exit 0
     fi
 fi
 
-# Add environment variables template
-if [ ! -f ".env.local" ] && [ ! -f ".env" ]; then
-    cat > ".env.local.example" << EOF
-# Command Center Plugin
-COMMAND_CENTER_URL=http://localhost:3000
-COMMAND_CENTER_PROJECT_ID=your-project-id
-COMMAND_CENTER_API_KEY=your-api-key
+echo "$USER_PROMPT"
 EOF
-    echo -e "${GREEN}Created .env.local.example${NC}"
-fi
+
+chmod +x "$CLAUDE_DIR/hooks/command-center-enrich.sh"
 
 echo ""
-echo "======================================"
-echo -e "${GREEN}  Installation Complete!  ${NC}"
-echo "======================================"
-echo ""
-echo "Plugin installed to: $PLUGIN_DIR/"
+echo -e "${GREEN}✓ Installation complete!${NC}"
 echo ""
 echo "Next steps:"
-echo "  1. Review config: $PLUGIN_DIR/config.json"
-echo "  2. Make sure your API key is correct"
-echo "  3. Test enrichment: ts-node $PLUGIN_DIR/plugin.ts enrich 'Add dark mode'"
+echo "  1. Edit $PLUGIN_DIR/config.json"
+echo "     - Set your Command Center URL"
+echo "     - Add your API key"
+echo "     - Add your Project ID"
 echo ""
-echo "For Claude Code integration, add a hook to intercept prompts."
-echo "See: $PLUGIN_DIR/README.md"
+echo "  2. Test the connection:"
+echo "     npx @command-center/plugin test"
 echo ""

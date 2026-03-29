@@ -6,10 +6,10 @@ import type { UpdateSessionInput } from '@/types/session';
 // GET /api/sessions/[id] - Get a single session
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const session = await queryOne<AgentSession>(
       'SELECT * FROM agent_sessions WHERE id = $1',
@@ -45,10 +45,10 @@ export async function GET(
 // PUT /api/sessions/[id] - Update a session
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body: UpdateSessionInput = await request.json();
 
     // Build dynamic update query

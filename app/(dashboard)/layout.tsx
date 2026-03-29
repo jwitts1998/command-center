@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { VoiceCommands } from '@/components/VoiceCommands';
 
 export default function DashboardLayout({
   children,
@@ -8,6 +9,8 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Global Voice Commands */}
+      <VoiceCommands />
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-14 items-center">
@@ -25,6 +28,12 @@ export default function DashboardLayout({
               Dashboard
             </Link>
             <Link
+              href="/voice"
+              className="transition-colors hover:text-foreground/80 text-foreground/60"
+            >
+              Voice
+            </Link>
+            <Link
               href="/enrich"
               className="transition-colors hover:text-foreground/80 text-foreground/60"
             >
@@ -35,6 +44,12 @@ export default function DashboardLayout({
               className="transition-colors hover:text-foreground/80 text-foreground/60"
             >
               Projects
+            </Link>
+            <Link
+              href="/activity"
+              className="transition-colors hover:text-foreground/80 text-foreground/60"
+            >
+              Activity
             </Link>
             <Link
               href="/sessions"

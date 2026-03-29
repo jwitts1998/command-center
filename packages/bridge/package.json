@@ -1,0 +1,22 @@
+{
+  "name": "@command-center/bridge",
+  "version": "1.0.0",
+  "description": "Voice-to-action bridge: watches inbox, triages transcripts, dispatches to C-Suite agents",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "wispr": "tsx src/wispr-watcher.ts",
+    "wispr:dev": "tsx watch src/wispr-watcher.ts"
+  },
+  "dependencies": {
+    "chokidar": "^3.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.0.0"
+  }
+}

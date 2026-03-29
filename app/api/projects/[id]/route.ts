@@ -6,10 +6,10 @@ import type { UpdateProjectInput } from '@/types/project';
 // GET /api/projects/[id] - Get a single project
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const project = await queryOne<Project>(
       'SELECT * FROM projects WHERE id = $1',
@@ -67,10 +67,10 @@ export async function GET(
 // PUT /api/projects/[id] - Update a project
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body: UpdateProjectInput = await request.json();
 
     // Build dynamic update query
@@ -152,10 +152,10 @@ export async function PUT(
 // DELETE /api/projects/[id] - Delete a project
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const result = await queryOne<{ id: string }>(
       'DELETE FROM projects WHERE id = $1 RETURNING id',

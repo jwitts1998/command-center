@@ -1,0 +1,7 @@
+{
+  "runId": "run_2026-03-28_03-07-57_92ebe151cfe1",
+  "state": "failed",
+  "phase": "triage",
+  "error": "triage failed: 1\nError: Claude Code cannot be launched inside another Claude Code session.\nNested sessions share runtime resources and will crash all active sessions.\nTo bypass this check, unset the CLAUDECODE environment variable.\n",
+  "finishedAt": "2026-03-28T03:08:09.843Z"
+}

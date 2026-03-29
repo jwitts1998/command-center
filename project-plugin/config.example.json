@@ -1,8 +1,9 @@
 {
-  "projectId": "your-project-id-from-command-center",
-  "apiKey": "your-api-key",
-  "commandCenterUrl": "http://localhost:3000",
-  "projectName": "My Project",
+  "commandCenterUrl": "https://your-command-center.vercel.app",
+  "apiKey": "cc_your-api-key-here",
+  "projectId": "00000000-0000-0000-0000-000000000000",
   "autoEnrich": true,
-  "techStack": ["react", "typescript", "tailwind"]
+  "skipClarification": false,
+  "timeout": 30000,
+  "offlineMode": true
 }

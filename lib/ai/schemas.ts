@@ -41,9 +41,9 @@ export const QuestionGenerationResultSchema = z.object({
 
 // Schema for prompt enrichment
 export const EnrichmentContextSchema = z.object({
-  tech_stack: z.record(z.any()).optional(),
+  tech_stack: z.record(z.string(), z.any()).optional(),
   patterns: z.array(z.string()).optional(),
-  user_preferences: z.record(z.string()).optional(),
+  user_preferences: z.record(z.string(), z.string()).optional(),
   project_conventions: z.array(z.string()).optional(),
 });
 
@@ -74,7 +74,7 @@ export const DetectedPatternSchema = z.object({
   ]),
   name: z.string(),
   description: z.string(),
-  pattern_data: z.record(z.any()),
+  pattern_data: z.record(z.string(), z.any()),
   confidence: z.number().min(0).max(1),
   evidence: z.array(z.string()),
   applicable_to: z.object({
