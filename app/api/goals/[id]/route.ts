@@ -35,11 +35,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const taskCount = tasks.length;
     const completedTaskCount = tasks.filter(t => t.status === 'completed').length;
     const totalEstimatedCost = tasks.reduce(
-      (sum, t) => sum + (t.estimated_cost_usd || 0),
+      (sum, t) => sum + parseFloat(String(t.estimated_cost_usd || 0)),
       0
     );
     const totalActualCost = tasks.reduce(
-      (sum, t) => sum + (t.actual_cost_usd || 0),
+      (sum, t) => sum + parseFloat(String(t.actual_cost_usd || 0)),
       0
     );
 
