@@ -113,18 +113,19 @@ export class TaskCheckout {
   ): Promise<TaskReleaseResult> {
     try {
       // Verify token and release
+      const isTerminalStatus = ['completed', 'failed', 'cancelled'].includes(newStatus);
       const result = await queryOne<{ id: string; status: string }>(
         `UPDATE tasks
          SET checkout_token = NULL,
              checkout_expires_at = NULL,
-             status = $1,
-             completed_at = CASE WHEN $1 IN ('completed', 'failed', 'cancelled') THEN NOW() ELSE completed_at END,
-             actual_cost_usd = COALESCE($2, actual_cost_usd),
+             status = $1::VARCHAR,
+             completed_at = CASE WHEN $5 THEN NOW() ELSE completed_at END,
+             actual_cost_usd = COALESCE($2::DECIMAL, actual_cost_usd),
              updated_at = NOW()
          WHERE id = $3
            AND checkout_token = $4
          RETURNING id, status`,
-        [newStatus, actualCostUsd, taskId, checkoutToken]
+        [newStatus, actualCostUsd ?? null, taskId, checkoutToken, isTerminalStatus]
       );
 
       if (!result) {

@@ -12,7 +12,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const body = await request.json();
 
-    const { checkout_token, status, actual_cost_usd } = body;
+    const { checkout_token, status, new_status, actual_cost_usd } = body;
+    const taskStatus = status || new_status;
 
     if (!checkout_token) {
       return NextResponse.json(
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const result = await taskCheckout.release(
       id,
       checkout_token,
-      status as TaskStatus || 'ready',
+      (taskStatus as TaskStatus) || 'ready',
       actual_cost_usd
     );
 
