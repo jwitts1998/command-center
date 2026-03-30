@@ -28,22 +28,34 @@ export default function DashboardLayout({
               Dashboard
             </Link>
             <Link
-              href="/voice"
+              href="/goals"
               className="transition-colors hover:text-foreground/80 text-foreground/60"
             >
-              Voice
+              Goals
             </Link>
             <Link
-              href="/enrich"
+              href="/tasks"
               className="transition-colors hover:text-foreground/80 text-foreground/60"
             >
-              Enrich
+              Tasks
             </Link>
             <Link
-              href="/projects"
+              href="/agents"
               className="transition-colors hover:text-foreground/80 text-foreground/60"
             >
-              Projects
+              Agents
+            </Link>
+            <Link
+              href="/approvals"
+              className="transition-colors hover:text-foreground/80 text-foreground/60"
+            >
+              Approvals
+            </Link>
+            <Link
+              href="/teams"
+              className="transition-colors hover:text-foreground/80 text-foreground/60"
+            >
+              Teams
             </Link>
             <Link
               href="/activity"
@@ -52,16 +64,10 @@ export default function DashboardLayout({
               Activity
             </Link>
             <Link
-              href="/sessions"
+              href="/projects"
               className="transition-colors hover:text-foreground/80 text-foreground/60"
             >
-              Sessions
-            </Link>
-            <Link
-              href="/patterns"
-              className="transition-colors hover:text-foreground/80 text-foreground/60"
-            >
-              Patterns
+              Projects
             </Link>
             <Link
               href="/costs"
