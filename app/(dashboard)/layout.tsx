@@ -22,7 +22,13 @@ export default function DashboardLayout({
           </div>
           <nav className="flex flex-1 items-center space-x-6 text-sm font-medium">
             <Link
-              href="/"
+              href="/chat"
+              className="transition-colors hover:text-foreground/80 text-foreground font-semibold"
+            >
+              Chat
+            </Link>
+            <Link
+              href="/dashboard"
               className="transition-colors hover:text-foreground/80 text-foreground/60"
             >
               Dashboard
@@ -74,6 +80,12 @@ export default function DashboardLayout({
               className="transition-colors hover:text-foreground/80 text-foreground/60"
             >
               Costs
+            </Link>
+            <Link
+              href="/design"
+              className="transition-colors hover:text-foreground/80 text-foreground/60"
+            >
+              Design
             </Link>
           </nav>
         </div>
