@@ -9,3 +9,5 @@ export * from './task';
 export * from './agent';
 export * from './approval';
 export * from './team';
+export * from './chat';
+export * from './widget';

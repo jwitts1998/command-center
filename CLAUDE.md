@@ -175,6 +175,21 @@ curl -X POST http://localhost:3000/api/inbox/ingest \
 | `/api/delegations/chain` | GET | Get delegation chain for task |
 | `/api/org-chart` | GET | Get organization chart |
 
+### Marketing Portal
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/marketing/campaigns` | GET/POST | List/create marketing campaigns |
+| `/api/marketing/campaigns/[id]` | GET/PUT/DELETE | Campaign CRUD |
+| `/api/marketing/assets` | GET/POST | List/create content assets |
+| `/api/marketing/assets/[id]` | GET/PUT/DELETE | Asset CRUD |
+| `/api/marketing/videos/templates` | GET | List Remotion video templates |
+| `/api/marketing/videos/render` | POST | Start video render |
+| `/api/marketing/videos/[id]/status` | GET | Check render status |
+| `/api/marketing/analytics` | GET | Campaign analytics |
+| `/api/marketing/context` | GET/POST | Product marketing context |
+| `/api/marketing/skills` | GET | List available marketing skills |
+
 ## MCP Portfolio Server
 
 The portfolio server (`mcp/portfolio-server/`) provides tools for cross-repo coordination:

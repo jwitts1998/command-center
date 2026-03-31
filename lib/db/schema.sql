@@ -435,3 +435,127 @@ INSERT INTO agents (slug, name, description, role, capabilities, specializations
     'claude'
   )
 ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================================================
+-- PHASE 5: AI-First Chat Interface
+-- ============================================================================
+
+-- Conversations: Persistent chat sessions
+CREATE TABLE IF NOT EXISTS conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id VARCHAR(255),                     -- For future multi-user support
+  title VARCHAR(500),                       -- Auto-generated or user-defined
+  context JSONB DEFAULT '{}',               -- Conversation context (entities, preferences)
+  is_active BOOLEAN DEFAULT true,           -- Whether conversation is active
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Chat Messages: Individual messages in conversations
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
+  role VARCHAR(20) NOT NULL,                -- 'user', 'assistant', 'system'
+  content TEXT,                             -- Text content (can be null if only widgets)
+  widgets JSONB DEFAULT '[]',               -- Embedded A2UI widgets
+  actions JSONB DEFAULT '[]',               -- Actions taken in this message
+  metadata JSONB DEFAULT '{}',              -- Additional metadata (intent, entities, etc.)
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Indexes for Phase 5
+CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_is_active ON conversations(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_conversations_created_at ON conversations(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation_id ON chat_messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_role ON chat_messages(role);
+
+-- Trigger for Phase 5
+CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON conversations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
+-- PHASE 6: Marketing Portal
+-- ============================================================================
+
+-- Marketing Campaigns
+CREATE TABLE IF NOT EXISTS marketing_campaigns (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  campaign_type VARCHAR(50) DEFAULT 'content', -- launch, content, paid, seo, email
+  status VARCHAR(50) DEFAULT 'draft',          -- draft, active, paused, completed
+  start_date TIMESTAMPTZ,
+  end_date TIMESTAMPTZ,
+  goals JSONB DEFAULT '{}',                    -- target metrics, KPIs
+  budget_usd DECIMAL(10,2),
+  created_by VARCHAR(255),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Marketing Assets (content and creative)
+CREATE TABLE IF NOT EXISTS marketing_assets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id UUID REFERENCES marketing_campaigns(id) ON DELETE SET NULL,
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  asset_type VARCHAR(50) NOT NULL,             -- copy, email, social_post, ad_creative, video, landing_page, blog, product_context
+  title VARCHAR(255) NOT NULL,
+  content JSONB DEFAULT '{}',                  -- structured content (headline, body, CTA, variants)
+  status VARCHAR(50) DEFAULT 'draft',          -- draft, review, approved, published
+  platform VARCHAR(50),                        -- instagram, tiktok, linkedin, x, youtube, meta_ads, google_ads, email
+  metadata JSONB DEFAULT '{}',                 -- dimensions, duration, format, skill_used
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Marketing Videos (Remotion video projects)
+CREATE TABLE IF NOT EXISTS marketing_videos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  asset_id UUID REFERENCES marketing_assets(id) ON DELETE CASCADE,
+  template_id VARCHAR(100) NOT NULL,           -- Remotion composition ID
+  input_props JSONB DEFAULT '{}',              -- Remotion defaultProps (copy, images, colors, timing)
+  render_status VARCHAR(50) DEFAULT 'draft',   -- draft, previewing, rendering, completed, failed
+  render_config JSONB DEFAULT '{}',            -- fps, width, height, codec, output_format
+  output_url TEXT,                             -- rendered video URL or local path
+  render_log JSONB,                            -- Lambda render metadata
+  duration_seconds DECIMAL(10,2),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Marketing Analytics (campaign performance)
+CREATE TABLE IF NOT EXISTS marketing_analytics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id UUID REFERENCES marketing_campaigns(id) ON DELETE CASCADE,
+  metric_name VARCHAR(100) NOT NULL,           -- impressions, clicks, conversions, ctr, cpc, revenue
+  metric_value DECIMAL(15,4) NOT NULL,
+  recorded_at TIMESTAMPTZ DEFAULT NOW(),
+  source VARCHAR(50) DEFAULT 'manual',         -- manual, agent
+  metadata JSONB DEFAULT '{}'
+);
+
+-- Indexes for Phase 6
+CREATE INDEX IF NOT EXISTS idx_marketing_campaigns_project_id ON marketing_campaigns(project_id);
+CREATE INDEX IF NOT EXISTS idx_marketing_campaigns_status ON marketing_campaigns(status);
+CREATE INDEX IF NOT EXISTS idx_marketing_assets_campaign_id ON marketing_assets(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_marketing_assets_project_id ON marketing_assets(project_id);
+CREATE INDEX IF NOT EXISTS idx_marketing_assets_asset_type ON marketing_assets(asset_type);
+CREATE INDEX IF NOT EXISTS idx_marketing_assets_status ON marketing_assets(status);
+CREATE INDEX IF NOT EXISTS idx_marketing_videos_asset_id ON marketing_videos(asset_id);
+CREATE INDEX IF NOT EXISTS idx_marketing_videos_render_status ON marketing_videos(render_status);
+CREATE INDEX IF NOT EXISTS idx_marketing_analytics_campaign_id ON marketing_analytics(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_marketing_analytics_recorded_at ON marketing_analytics(recorded_at DESC);
+
+-- Triggers for Phase 6
+CREATE TRIGGER update_marketing_campaigns_updated_at BEFORE UPDATE ON marketing_campaigns
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_marketing_assets_updated_at BEFORE UPDATE ON marketing_assets
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_marketing_videos_updated_at BEFORE UPDATE ON marketing_videos
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

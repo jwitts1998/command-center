@@ -271,3 +271,80 @@ export interface Delegation {
   delegated_at: Date;
   completed_at: Date | null;
 }
+
+// Phase 5: AI-First Chat Interface
+export interface Conversation {
+  id: string;
+  user_id: string | null;
+  title: string | null;
+  context: Record<string, any>;
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string | null;
+  widgets: any[];
+  actions: any[];
+  metadata: Record<string, any>;
+  created_at: Date;
+}
+
+// Phase 6: Marketing Portal
+export interface MarketingCampaign {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  campaign_type: string;
+  status: string;
+  start_date: Date | null;
+  end_date: Date | null;
+  goals: Record<string, any>;
+  budget_usd: number | null;
+  created_by: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface MarketingAsset {
+  id: string;
+  campaign_id: string | null;
+  project_id: string;
+  asset_type: string;
+  title: string;
+  content: Record<string, any>;
+  status: string;
+  platform: string | null;
+  metadata: Record<string, any>;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface MarketingVideo {
+  id: string;
+  asset_id: string;
+  template_id: string;
+  input_props: Record<string, any>;
+  render_status: string;
+  render_config: Record<string, any>;
+  output_url: string | null;
+  render_log: Record<string, any> | null;
+  duration_seconds: number | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface MarketingAnalytic {
+  id: string;
+  campaign_id: string;
+  metric_name: string;
+  metric_value: number;
+  recorded_at: Date;
+  source: string;
+  metadata: Record<string, any>;
+}
