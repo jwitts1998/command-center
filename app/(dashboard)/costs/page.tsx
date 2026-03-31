@@ -250,9 +250,9 @@ export default function CostsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {alerts.map((alert) => (
+              {alerts.map((alert, index) => (
                 <div
-                  key={`${alert.projectId}-${alert.month}`}
+                  key={`${alert.projectId}-${alert.month}-${index}`}
                   className="flex items-center justify-between p-3 rounded-lg border"
                 >
                   <div className="flex items-center gap-4">

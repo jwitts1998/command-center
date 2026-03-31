@@ -90,6 +90,8 @@ function TaskTreeNode({ node, depth, onTaskClick }: TaskTreeNodeProps) {
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="p-0.5 rounded hover:bg-muted"
+            aria-label={isExpanded ? 'Collapse task' : 'Expand task'}
+            aria-expanded={isExpanded}
           >
             {isExpanded ? (
               <ChevronDown className="h-4 w-4 text-muted-foreground" />

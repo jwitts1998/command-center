@@ -216,6 +216,7 @@ export function VoiceCommands({
           }
         `}
         title="Toggle voice commands (Ctrl+Shift+V)"
+        aria-label="Toggle voice commands"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

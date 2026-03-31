@@ -86,6 +86,7 @@ export function VoiceInput({
           <button
             onClick={handleToggleListening}
             disabled={!isSupported || isSubmitting}
+            aria-label={isListening ? 'Stop recording' : 'Start recording'}
             className={`
               relative w-20 h-20 rounded-full transition-all duration-300
               flex items-center justify-center
