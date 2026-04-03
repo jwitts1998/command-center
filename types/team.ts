@@ -96,3 +96,12 @@ export interface OrgNode {
   subordinates: OrgNode[];
   team_id?: string;
 }
+
+export interface TeamMetrics {
+  total_tasks_completed: number;
+  total_tasks_in_progress: number;
+  avg_task_completion_time_hours: number;
+  total_cost_usd: number;
+  active_delegations: number;
+  member_utilization: Record<string, { tasks: number; cost: number; agent_name: string }>;
+}

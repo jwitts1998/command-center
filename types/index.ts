@@ -11,3 +11,4 @@ export * from './approval';
 export * from './team';
 export * from './chat';
 export * from './widget';
+export * from './notification';

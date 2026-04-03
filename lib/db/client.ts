@@ -348,3 +348,17 @@ export interface MarketingAnalytic {
   source: string;
   metadata: Record<string, any>;
 }
+
+// Phase 7: Notifications
+export interface Notification {
+  id: string;
+  user_id: string | null;
+  type: string;
+  title: string;
+  message: string | null;
+  metadata: Record<string, any>;
+  is_read: boolean;
+  read_at: Date | null;
+  created_at: Date;
+  expires_at: Date | null;
+}

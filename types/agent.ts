@@ -128,3 +128,117 @@ export interface AgentHeartbeat {
   uptime_seconds?: number;
   last_activity?: string;
 }
+
+// Agent Templates for quick setup
+export interface AgentTemplate {
+  id: string;
+  name: string;
+  description: string;
+  role: AgentRole;
+  capabilities: string[];
+  specializations: string[];
+  adapter_type: AdapterType;
+  heartbeat_mode: HeartbeatMode;
+  suggested_budget?: number;
+  icon?: string;
+}
+
+export const AGENT_TEMPLATES: AgentTemplate[] = [
+  {
+    id: 'coder',
+    name: 'Code Writer',
+    description: 'Writes and implements code based on specifications',
+    role: 'worker',
+    capabilities: ['code_execution', 'file_operations', 'debugging'],
+    specializations: ['software_engineering'],
+    adapter_type: 'claude',
+    heartbeat_mode: 'on_demand',
+    suggested_budget: 50,
+    icon: 'code',
+  },
+  {
+    id: 'reviewer',
+    name: 'Code Reviewer',
+    description: 'Reviews code for quality, security, and best practices',
+    role: 'specialist',
+    capabilities: ['code_review', 'testing', 'security_analysis'],
+    specializations: ['code_quality', 'security'],
+    adapter_type: 'claude',
+    heartbeat_mode: 'on_demand',
+    suggested_budget: 30,
+    icon: 'search-code',
+  },
+  {
+    id: 'architect',
+    name: 'System Architect',
+    description: 'Designs system architecture and makes technical decisions',
+    role: 'executive',
+    capabilities: ['planning', 'design', 'technical_review', 'documentation'],
+    specializations: ['system_design', 'technical_leadership'],
+    adapter_type: 'claude',
+    heartbeat_mode: 'on_demand',
+    suggested_budget: 75,
+    icon: 'layers',
+  },
+  {
+    id: 'coordinator',
+    name: 'Task Coordinator',
+    description: 'Coordinates tasks and manages delegation between agents',
+    role: 'coordinator',
+    capabilities: ['task_management', 'delegation', 'prioritization'],
+    specializations: ['project_management', 'resource_allocation'],
+    adapter_type: 'claude',
+    heartbeat_mode: 'continuous',
+    suggested_budget: 40,
+    icon: 'git-branch',
+  },
+  {
+    id: 'tester',
+    name: 'QA Tester',
+    description: 'Writes and executes tests, ensures quality',
+    role: 'specialist',
+    capabilities: ['testing', 'qa', 'test_automation', 'bug_reporting'],
+    specializations: ['quality_assurance', 'test_engineering'],
+    adapter_type: 'claude',
+    heartbeat_mode: 'on_demand',
+    suggested_budget: 35,
+    icon: 'test-tube',
+  },
+  {
+    id: 'devops',
+    name: 'DevOps Engineer',
+    description: 'Manages deployments, CI/CD, and infrastructure',
+    role: 'specialist',
+    capabilities: ['deployment', 'ci_cd', 'infrastructure', 'monitoring'],
+    specializations: ['devops', 'cloud_engineering'],
+    adapter_type: 'claude',
+    heartbeat_mode: 'continuous',
+    suggested_budget: 60,
+    icon: 'cloud',
+  },
+];
+
+// Wizard form data type
+export interface AgentWizardData {
+  // Step 1: Basic Info
+  slug: string;
+  name: string;
+  description: string;
+  role: AgentRole;
+
+  // Step 2: Capabilities
+  capabilities: string[];
+  specializations: string[];
+
+  // Step 3: Adapter Config
+  adapter_type: AdapterType;
+  adapter_config: Record<string, unknown>;
+
+  // Step 4: Budget & Limits
+  monthly_budget_usd: number | null;
+  heartbeat_mode: HeartbeatMode;
+  heartbeat_interval_seconds: number;
+
+  // Step 5: System Prompt
+  system_prompt_path: string;
+}

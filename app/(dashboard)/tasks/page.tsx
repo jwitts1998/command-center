@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TaskCard } from '@/components/TaskCard';
+import { ExportButton } from '@/components/export/ExportButton';
 import type { Task, TaskStatus } from '@/types/task';
 import type { Agent } from '@/types/agent';
 import type { Goal } from '@/types/goal';
@@ -129,11 +130,14 @@ export default function TasksPage() {
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
-        <p className="text-muted-foreground">
-          View and manage all tasks across goals
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
+          <p className="text-muted-foreground">
+            View and manage all tasks across goals
+          </p>
+        </div>
+        <ExportButton exportType="tasks" />
       </div>
 
       {/* Stats Cards */}

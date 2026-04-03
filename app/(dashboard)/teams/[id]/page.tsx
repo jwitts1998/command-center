@@ -6,55 +6,43 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { HeartbeatIndicator } from '@/components/HeartbeatIndicator';
-import { formatDate, formatCurrency } from '@/lib/utils';
-import type { TeamWithMembers, TeamMemberRole } from '@/types/team';
-import type { Agent } from '@/types/agent';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TeamMemberList } from '@/components/teams/TeamMemberList';
+import { AddMemberDialog } from '@/components/teams/AddMemberDialog';
+import { TeamMetrics } from '@/components/teams/TeamMetrics';
+import { DelegationFlow } from '@/components/teams/DelegationFlow';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import type { TeamWithMembers, TeamMetrics as TeamMetricsType, TeamMemberRole, Delegation } from '@/types/team';
 import {
-  Users,
   ArrowLeft,
-  XCircle,
+  Users,
   DollarSign,
   Crown,
-  Plus,
-  UserMinus,
+  UserPlus,
+  Trash2,
   Loader2,
-  Bot,
+  Settings,
+  BarChart3,
+  GitBranch,
 } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 
 export default function TeamDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [team, setTeam] = useState<TeamWithMembers | null>(null);
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [newMember, setNewMember] = useState({
-    agent_id: '',
-    role: 'member' as TeamMemberRole,
-  });
-
   const teamId = params.id as string;
 
+  const [team, setTeam] = useState<TeamWithMembers | null>(null);
+  const [metrics, setMetrics] = useState<TeamMetricsType | null>(null);
+  const [delegations, setDelegations] = useState<Delegation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [metricsLoading, setMetricsLoading] = useState(true);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
   useEffect(() => {
-    Promise.all([fetchTeam(), fetchAgents()]);
+    fetchTeam();
+    fetchMetrics();
+    fetchDelegations();
   }, [teamId]);
 
   async function fetchTeam() {
@@ -63,8 +51,6 @@ export default function TeamDetailPage() {
       const data = await response.json();
       if (data.success) {
         setTeam(data.data);
-      } else {
-        console.error('Error:', data.error);
       }
     } catch (error) {
       console.error('Error fetching team:', error);
@@ -73,77 +59,101 @@ export default function TeamDetailPage() {
     }
   }
 
-  async function fetchAgents() {
+  async function fetchMetrics() {
+    setMetricsLoading(true);
     try {
-      const response = await fetch('/api/agents?status=active');
+      const response = await fetch(`/api/teams/${teamId}/metrics`);
       const data = await response.json();
       if (data.success) {
-        setAgents(data.data);
+        setMetrics(data.data);
       }
     } catch (error) {
-      console.error('Error fetching agents:', error);
-    }
-  }
-
-  async function handleAddMember(e: React.FormEvent) {
-    e.preventDefault();
-    setActionLoading('add');
-
-    try {
-      const response = await fetch(`/api/teams/${teamId}/members`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMember),
-      });
-      const data = await response.json();
-      if (data.success) {
-        setAddMemberDialogOpen(false);
-        setNewMember({ agent_id: '', role: 'member' });
-        fetchTeam();
-      } else {
-        alert(`Error: ${data.error}`);
-      }
-    } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching metrics:', error);
     } finally {
-      setActionLoading(null);
+      setMetricsLoading(false);
     }
   }
 
-  async function handleRemoveMember(agentId: string) {
-    if (!confirm('Are you sure you want to remove this member?')) {
+  async function fetchDelegations() {
+    try {
+      const response = await fetch(`/api/delegations?status=active`);
+      const data = await response.json();
+      if (data.success && team) {
+        // Filter delegations for this team's members
+        const memberIds = team.members.map((m) => m.agent_id);
+        const teamDelegations = data.data.filter(
+          (d: Delegation) =>
+            memberIds.includes(d.from_agent_id) || memberIds.includes(d.to_agent_id)
+        );
+        setDelegations(teamDelegations);
+      }
+    } catch (error) {
+      console.error('Error fetching delegations:', error);
+    }
+  }
+
+  // Refetch delegations when team loads
+  useEffect(() => {
+    if (team) {
+      fetchDelegations();
+    }
+  }, [team?.id]);
+
+  async function handleAddMember(agentId: string, role: TeamMemberRole) {
+    const response = await fetch(`/api/teams/${teamId}/members`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent_id: agentId, role }),
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      fetchTeam();
+      fetchMetrics();
+    } else {
+      throw new Error(data.error);
+    }
+  }
+
+  async function handleRemoveMember(memberId: string) {
+    if (!confirm('Are you sure you want to remove this member from the team?')) {
       return;
     }
 
-    setActionLoading(`remove-${agentId}`);
     try {
+      const member = team?.members.find((m) => m.id === memberId);
+      if (!member) return;
+
       const response = await fetch(`/api/teams/${teamId}/members`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent_id: agentId }),
+        body: JSON.stringify({ agent_id: member.agent_id }),
       });
+
       const data = await response.json();
       if (data.success) {
         fetchTeam();
+        fetchMetrics();
       } else {
         alert(`Error: ${data.error}`);
       }
     } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setActionLoading(null);
+      console.error('Error removing member:', error);
+      alert('Failed to remove member');
     }
   }
 
-  async function handleDelete() {
-    if (!confirm('Are you sure you want to delete this team?')) {
+  async function handleDeleteTeam() {
+    if (!confirm('Are you sure you want to delete this team? This action cannot be undone.')) {
       return;
     }
 
+    setActionLoading(true);
     try {
       const response = await fetch(`/api/teams/${teamId}`, {
         method: 'DELETE',
       });
+
       const data = await response.json();
       if (data.success) {
         router.push('/teams');
@@ -151,14 +161,17 @@ export default function TeamDetailPage() {
         alert(`Error: ${data.error}`);
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error deleting team:', error);
+      alert('Failed to delete team');
+    } finally {
+      setActionLoading(false);
     }
   }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading team...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -177,15 +190,7 @@ export default function TeamDetailPage() {
     );
   }
 
-  const availableAgents = agents.filter(
-    a => !team.members.some(m => m.agent_id === a.id)
-  );
-
-  const roleColors: Record<string, string> = {
-    lead: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
-    member: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-    advisor: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
-  };
+  const existingMemberIds = team.members.map((m) => m.agent_id);
 
   return (
     <div className="space-y-8">
@@ -201,9 +206,9 @@ export default function TeamDetailPage() {
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <Users className="h-6 w-6 text-muted-foreground" />
+            <Users className="h-8 w-8 text-muted-foreground" />
             <h1 className="text-3xl font-bold tracking-tight">{team.name}</h1>
-            <Badge variant="secondary">
+            <Badge variant="outline">
               {team.members.length} member{team.members.length !== 1 ? 's' : ''}
             </Badge>
           </div>
@@ -212,80 +217,26 @@ export default function TeamDetailPage() {
           )}
         </div>
         <div className="flex gap-2">
-          <Dialog open={addMemberDialogOpen} onOpenChange={setAddMemberDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" disabled={availableAgents.length === 0}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add Member
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Team Member</DialogTitle>
-                <DialogDescription>
-                  Add an agent to this team
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleAddMember} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="agent">Agent *</Label>
-                  <Select
-                    value={newMember.agent_id}
-                    onValueChange={(value) => setNewMember({ ...newMember, agent_id: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an agent" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableAgents.map((agent) => (
-                        <SelectItem key={agent.id} value={agent.id}>
-                          {agent.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Select
-                    value={newMember.role}
-                    onValueChange={(value) => setNewMember({ ...newMember, role: value as TeamMemberRole })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="lead">Lead</SelectItem>
-                      <SelectItem value="member">Member</SelectItem>
-                      <SelectItem value="advisor">Advisor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={!newMember.agent_id || actionLoading !== null}
-                >
-                  {actionLoading === 'add' ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : null}
-                  Add Member
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button variant="outline" onClick={() => setAddMemberOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Member
+          </Button>
           <Button
             variant="destructive"
-            size="sm"
-            onClick={handleDelete}
+            onClick={handleDeleteTeam}
+            disabled={actionLoading}
           >
-            <XCircle className="h-4 w-4 mr-1" />
+            {actionLoading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4 mr-2" />
+            )}
             Delete
           </Button>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -294,131 +245,128 @@ export default function TeamDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {team.lead ? team.lead.name : 'None'}
+              {team.lead ? team.lead.name : 'Not assigned'}
             </div>
+            {team.lead && (
+              <p className="text-xs text-muted-foreground">@{team.lead.slug}</p>
+            )}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Members</CardTitle>
-            <Bot className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{team.members.length}</div>
-          </CardContent>
-        </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Budget</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {team.budget_usd ? formatCurrency(team.budget_usd) : '-'}
+              {team.budget_usd ? formatCurrency(team.budget_usd) : 'Unlimited'}
             </div>
+            <p className="text-xs text-muted-foreground">monthly allocation</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Capabilities</CardTitle>
+            <Settings className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{team.total_capabilities.length}</div>
+            <p className="text-xs text-muted-foreground">unique skills</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Members */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Team Members</CardTitle>
-          <CardDescription>Agents in this team</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {team.members.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-4">
-              No members yet. Add agents to build your team.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {team.members.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center justify-between p-3 rounded-lg border"
-                >
-                  <div className="flex items-center gap-3">
-                    <HeartbeatIndicator
-                      status={member.agent.status}
-                      lastHeartbeat={member.agent.last_heartbeat}
-                    />
-                    <div>
-                      <Link
-                        href={`/agents/${member.agent_id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {member.agent.name}
-                      </Link>
-                      <p className="text-xs text-muted-foreground">
-                        @{member.agent.slug}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className={`capitalize ${roleColors[member.role]}`}
-                    >
-                      {member.role}
+      {/* Tabs */}
+      <Tabs defaultValue="members" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="members" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Members
+          </TabsTrigger>
+          <TabsTrigger value="metrics" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Metrics
+          </TabsTrigger>
+          <TabsTrigger value="delegations" className="flex items-center gap-2">
+            <GitBranch className="h-4 w-4" />
+            Delegations
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="members" className="space-y-6">
+          <TeamMemberList
+            members={team.members}
+            onRemoveMember={handleRemoveMember}
+          />
+
+          {/* Capabilities */}
+          {team.total_capabilities.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Team Capabilities</CardTitle>
+                <CardDescription>
+                  Combined skills from all team members
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {team.total_capabilities.map((cap) => (
+                    <Badge key={cap} variant="secondary">
+                      {cap.replace(/_/g, ' ')}
                     </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveMember(member.agent_id)}
-                      disabled={actionLoading === `remove-${member.agent_id}`}
-                    >
-                      {actionLoading === `remove-${member.agent_id}` ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <UserMinus className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
 
-      {/* Capabilities */}
-      {team.total_capabilities.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Combined Capabilities</CardTitle>
-            <CardDescription>All capabilities across team members</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {team.total_capabilities.map((cap) => (
-                <Badge key={cap} variant="secondary">
-                  {cap}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        <TabsContent value="metrics">
+          {metrics ? (
+            <TeamMetrics metrics={metrics} loading={metricsLoading} />
+          ) : (
+            <Card>
+              <CardContent className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
-      {/* Details */}
+        <TabsContent value="delegations">
+          <DelegationFlow members={team.members} delegations={delegations} />
+        </TabsContent>
+      </Tabs>
+
+      {/* Team Info */}
       <Card>
         <CardHeader>
-          <CardTitle>Details</CardTitle>
+          <CardTitle className="text-base">Team Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 text-sm">
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Created</p>
-              <p className="text-sm">{formatDate(team.created_at)}</p>
+              <p className="text-muted-foreground">Created</p>
+              <p className="font-medium">{formatDate(team.created_at)}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Last Updated</p>
-              <p className="text-sm">{formatDate(team.updated_at)}</p>
+              <p className="text-muted-foreground">Last Updated</p>
+              <p className="font-medium">{formatDate(team.updated_at)}</p>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Add Member Dialog */}
+      <AddMemberDialog
+        open={addMemberOpen}
+        onOpenChange={setAddMemberOpen}
+        teamId={teamId}
+        existingMemberIds={existingMemberIds}
+        onAdd={handleAddMember}
+      />
     </div>
   );
 }

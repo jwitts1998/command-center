@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { SessionList } from '@/components/SessionCard';
+import { ExportButton } from '@/components/export/ExportButton';
 import Link from 'next/link';
 import type { Project } from '@/types/project';
 
@@ -112,9 +113,12 @@ export default function SessionsPage() {
             Monitor prompt enrichment sessions across all projects
           </p>
         </div>
-        <Link href="/enrich">
-          <Button>New Enrichment</Button>
-        </Link>
+        <div className="flex gap-2">
+          <ExportButton exportType="sessions" />
+          <Link href="/enrich">
+            <Button>New Enrichment</Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats Grid */}

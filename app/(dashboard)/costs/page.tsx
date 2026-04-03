@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
+import { ExportButton } from '@/components/export/ExportButton';
 import type { Project } from '@/types/project';
 
 interface ProjectCost {
@@ -196,6 +197,7 @@ export default function CostsPage() {
             Monitor token usage and API costs across all projects
           </p>
         </div>
+        <ExportButton exportType="costs" />
       </div>
 
       {/* Total Stats */}

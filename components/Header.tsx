@@ -8,7 +8,6 @@ import { useLayout } from '@/components/LayoutProvider';
 import { Button } from '@/components/ui/button';
 import { CommandPalette } from '@/components/CommandPalette';
 import {
-  Bell,
   Settings,
   Mic,
   Menu,
@@ -27,7 +26,9 @@ import {
   BookOpen,
   Palette,
   Layers,
+  Bell,
 } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 const mobileNavItems = [
   { label: 'Chat', href: '/chat', icon: <MessageSquare className="h-5 w-5" /> },
@@ -41,6 +42,7 @@ const mobileNavItems = [
   { label: 'Teams', href: '/teams', icon: <UsersRound className="h-5 w-5" /> },
   { label: 'Marketing', href: '/marketing', icon: <Megaphone className="h-5 w-5" /> },
   { label: 'Costs', href: '/costs', icon: <DollarSign className="h-5 w-5" /> },
+  { label: 'Notifications', href: '/notifications', icon: <Bell className="h-5 w-5" /> },
   { label: 'Design', href: '/design', icon: <Palette className="h-5 w-5" /> },
   { label: 'Guides', href: '/guides', icon: <BookOpen className="h-5 w-5" /> },
 ];
@@ -95,12 +97,7 @@ export function Header() {
             </Button>
 
             {/* Notifications */}
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-4 w-4" />
-              <span className="sr-only">Notifications</span>
-              {/* Notification dot */}
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />
-            </Button>
+            <NotificationBell />
 
             {/* Settings */}
             <Button variant="ghost" size="icon">

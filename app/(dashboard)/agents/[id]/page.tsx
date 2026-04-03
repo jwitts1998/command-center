@@ -24,7 +24,9 @@ import {
   Loader2,
   Users,
   Send,
+  Pencil,
 } from 'lucide-react';
+import { AgentWizard } from '@/components/agents/AgentWizard';
 
 export default function AgentDetailPage() {
   const params = useParams();
@@ -33,6 +35,7 @@ export default function AgentDetailPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [editWizardOpen, setEditWizardOpen] = useState(false);
 
   const agentId = params.id as string;
 
@@ -213,6 +216,14 @@ export default function AgentDetailPage() {
           <p className="text-sm text-muted-foreground">@{agent.slug}</p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEditWizardOpen(true)}
+          >
+            <Pencil className="h-4 w-4 mr-1" />
+            Edit
+          </Button>
           {agent.status === 'active' && (
             <Button
               variant="outline"
@@ -444,6 +455,14 @@ export default function AgentDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit Wizard */}
+      <AgentWizard
+        open={editWizardOpen}
+        onOpenChange={setEditWizardOpen}
+        editAgent={agent}
+        onSuccess={() => fetchAgent()}
+      />
     </div>
   );
 }
